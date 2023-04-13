@@ -1,18 +1,20 @@
 const express = require('express');
 const accessApi = require('./accessRequest');
-const studentApi = require('./student');
-const teacherApi = require('./teacher');
+const userApi = require('./user');
 const dashboardApi = require('./dashboard');
 const adminApi = require('./admin');
 const appApi = require('./app_api');
+const reviewApi = require('./review');
+const ratingApi = require('./rating');
 
 const router = express.Router();
 
 router.use(accessApi);
-router.use(studentApi);
-router.use(teacherApi);
+router.use(userApi);
 router.use(dashboardApi);
 router.use(adminApi);
 router.use(appApi);
+router.use(reviewApi);
+router.use(ratingApi);
 
 module.exports = router;

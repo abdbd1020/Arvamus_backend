@@ -2,48 +2,75 @@ const uuid = require('uuid');
 const bcrypt = require('bcrypt');
 const dbConnection = require('../database');
 
-async function getTotalCountry(req, res) {
+async function getAllTeachers(req, res) {
   try {
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'SELECT COUNT(DISTINCT country) AS totalCountry FROM users',
-
+        'SELECT * FROM users WHERE type = "TEACHER"',
         (error, result, field) => {
           if (error) {
-            res.status(401).json({ message: error });
+            res.status(500).json({ message: error.message });
             return;
           }
-
           resolve(result);
         }
       );
     });
     console.log(response);
     return res.send({
-      data: response,
       status: true,
-      responseMessage: 'total country sent',
+      responseMessage: 'All teachers',
+      response: response,
     });
   } catch (e) {
     console.log(e);
+    res.status(500).json({ message: e.message });
   }
 }
-
-async function dropTables() {
+async function getAllStuff(req, res) {
   try {
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'DROP TABLE IF EXISTS admins;DROP TABLE IF EXISTS classroom;DROP TABLE IF EXISTS users;DROP TABLE IF EXISTS accessrequests;DROP TABLE IF EXISTS quiz;',
-
+        'SELECT * FROM users WHERE type = "STUFF"',
         (error, result, field) => {
           if (error) {
-            console.log(error);
+            res.status(500).json({ message: error.message });
             return;
           }
           resolve(result);
         }
       );
     });
+    console.log(response);
+    return res.send({
+      status: true,
+      responseMessage: 'All Stuff',
+      response: response,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: e.message });
+  }
+}
+
+
+async function dropTables() {
+  try {
+    const response = await new Promise((resolve, reject) => {
+      dbConnection.query(
+        'DROP TABLE IF EXISTS admins;DROP TABLE IF EXISTS review;DROP TABLE IF EXISTS rating;DROP TABLE IF EXISTS users;',
+
+        (error, result, field) => {
+          if (error) {
+            console.log(error);
+            return;
+          }
+          
+          resolve(result);
+        }
+      );
+    });
+    
   } catch (e) {
     console.log(e);
   }
@@ -54,7 +81,7 @@ async function databaseCommit(req, res) {
     await dropTables();
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'CREATE TABLE `admins` (`adminId` char(36) PRIMARY KEY NOT NULL,`name` varchar(255) NOT NULL,`email` varchar(255) NOT NULL,`password` varchar(255) NOT NULL) ; CREATE TABLE `users` (`userId` char(36) NOT NULL,`firstName` varchar(255) DEFAULT NULL,`lastName` varchar(255) DEFAULT NULL,`email` varchar(255) NOT NULL,`password` varchar(255) NOT NULL,`mobile` varchar(255) DEFAULT NULL,`type` varchar(255) NOT NULL) ; ALTER TABLE `users` ADD PRIMARY KEY (`userId`);CREATE TABLE `review` (`reviewId` char(36) PRIMARY KEY NOT NULL,`reviewerId` char(36) NOT NULL, `revieweeId` char(36) NULL,`revieweText` char(255) NULL, FOREIGN KEY (reviewerId) REFERENCES users(userId),FOREIGN KEY (revieweeId) REFERENCES users(userId));',
+        'CREATE TABLE `admins` (`adminId` char(36) PRIMARY KEY NOT NULL,`name` varchar(255) NOT NULL,`email` varchar(255) NOT NULL,`password` varchar(255) NOT NULL) ; CREATE TABLE `users` (`userId` char(36) NOT NULL,`firstName` varchar(255) NOT NULL,`lastName` varchar(255) DEFAULT NULL,`email` varchar(255) NOT NULL,`password` varchar(255) NOT NULL,`mobile` varchar(255) NOT NULL,`type` varchar(255) NOT NULL,`showRating` char(2) NOT NULL) ; ALTER TABLE `users` ADD PRIMARY KEY (`userId`), ADD UNIQUE KEY `unique_email` (`email`) ;CREATE TABLE `review` (`reviewId` char(36) PRIMARY KEY NOT NULL,`reviewerId` char(36) NOT NULL, `revieweeEmail` char(36) NULL,`reviewText` varchar(255) NULL, `isDeleted` char(2) NOT NULL, FOREIGN KEY (reviewerId) REFERENCES users(userId),FOREIGN KEY (revieweeEmail) REFERENCES users(email));CREATE TABLE `rating` (`ratingId` char(36) PRIMARY KEY NOT NULL,`reviewerId` char(36) NOT NULL,`revieweeEmail` char(36) NOT NULL,`responsibility` char(36) NOT NULL, `behaviour` char(36) NULL,`professionalism` char(36) NOT NULL,`proficiency` char(36) NOT NULL,`management` char(36) NOT NULL,`isDeleted` char(2) NOT NULL, FOREIGN KEY (reviewerId) REFERENCES users(userId),FOREIGN KEY (revieweeEmail) REFERENCES users(email));',
 
         (error, result, field) => {
           if (error) {
@@ -101,6 +128,8 @@ async function databaseCommit(req, res) {
 }
 
 module.exports = {
-  getTotalCountry,
+  getAllTeachers,
   databaseCommit,
+  dropTables,
+  getAllStuff,
 };

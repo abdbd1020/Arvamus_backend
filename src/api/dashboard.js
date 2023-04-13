@@ -5,6 +5,9 @@ const dashboardController = require('../controllers/dashboardController');
 const router = express.Router();
 
 router.get('/database_commit', dashboardController.databaseCommit);
-router.get('/get_total_country', dashboardController.getTotalCountry);
+router.get('/drop_tables', dashboardController.dropTables);
+router.get('/get_all_teachers', dashboardController.getAllTeachers);
+router.get('/get_all_stuff', dashboardController.getAllStuff);
+
 
 module.exports = router;

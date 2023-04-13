@@ -6,11 +6,60 @@ const dbConnection = require('../database');
 const { ServerEnum } = require('../../ServerEnum');
 const { sendMail } = require('./mail');
 
+
+// register
+async function signup(req, res) {
+  console.log(req.body);
+  if(!req || !req.body || !req.body.firstName || !req.body.lastName || !req.body.email || !req.body.password || !req.body.mobile || !req.body.type) {
+    return res.send({
+      status: false,
+      responseMessage: 'Invalid request',
+    });
+  }
+  try {
+    const { firstName, lastName, email, password, mobile, type } = req.body;
+    const userId = uuid.v4();
+    const hash = await bcrypt.hash(password, 10);
+    const user =   dbConnection.query(
+      `INSERT INTO users (userId, firstName, lastName, email, password, mobile, type)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        firstName,
+        lastName,
+        email,
+        hash,
+        mobile,
+        type
+      ],
+      (error, result, field) => {
+        if (error) {
+          res.status(401).json({ message: error });
+          return;
+        }
+      }
+    );
+    return res.send({
+      status: true,
+      responseMessage: 'Student stored',
+    });
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+
 async function login(req, res) {
+  if (!req || !req.body || !req.body.email || !req.body.password) {
+    return res.send({
+      status: false,
+      responseMessage: 'Invalid request',
+    });
+  }
   console.log(req.body);
   try {
     const { email, password } = req.body;
-
+    console.log(email, password)
     const user = await new Promise((resolve, reject) => {
       dbConnection.query(
         'SELECT * FROM users WHERE email = ?',
@@ -28,43 +77,13 @@ async function login(req, res) {
               responseMessage: 'email does not exist',
             });
           }
-          if (result[0].status === ServerEnum.STATUS_INACTIVE) {
-            console.log('User Inactive');
-            return res.send({
-              status: false,
-              responseMessage: 'User Inactive',
-            });
-          }
+        
           resolve(result[0]);
         }
       );
     });
 
-    if (user.type === ServerEnum.STUDENT) {
-      const data = await new Promise((resolve, reject) => {
-        dbConnection.query(
-          'SELECT score, questions FROM classroom WHERE studentId = ?',
-          [user.userId],
-          (error, result, field) => {
-            if (error) {
-              res.status(401).json({ message: error });
-              return;
-            }
-            console.log(result);
 
-            if (result.length === 0) {
-              return res.send({
-                status: false,
-                responseMessage: 'Something went wrong',
-              });
-            }
-            resolve(result[0]);
-          }
-        );
-      });
-      user.score = data.score;
-      user.questions = data.questions;
-    }
 
     bcrypt.compare(password, user.password, (err, result) => {
       if (result) {
@@ -86,6 +105,12 @@ async function login(req, res) {
 }
 
 async function forgotPassword(req, res) {
+  if (!req || !req.body || !req.body.email) {
+    return res.send({
+      status: false,
+      responseMessage: 'Invalid request',
+    });
+  }
   console.log(req.body);
   try {
     const { email } = req.body;
@@ -132,13 +157,20 @@ async function forgotPassword(req, res) {
         );
       });
 
-      sendMail(
+      const snedMailResponse = sendMail(
         email,
         'Password reset',
         `Your password has been reset.\nNew password is: ${
 					 password
 					 }\nKindly ensure to change your password once you login.\n `
       );
+      console.log(snedMailResponse);
+      if (!snedMailResponse) {
+        return res.send({
+          status: false,
+          responseMessage: 'Error while sending mail',
+        });
+      }
 
       return res.send({
         status: true,
@@ -176,7 +208,7 @@ async function changePassword(req, res) {
         }
       );
     });
-
+    
     bcrypt.compare(oldPassword, response.password, async (err, result) => {
       if (result) {
         await new Promise((resolve, reject) => {
@@ -216,7 +248,7 @@ async function updateInfo(req, res) {
   console.log(req.body);
   try {
     const {
-      userId, firstName, lastName, country, mobile, parentEmail
+      userId, firstName, lastName, mobile
     } =			req.body;
 
     const response = await new Promise((resolve, reject) => {
@@ -243,13 +275,11 @@ async function updateInfo(req, res) {
 
     await new Promise((resolve, reject) => {
       dbConnection.query(
-        'UPDATE users SET firstName = ?, lastName = ?, country = ?, mobile = ?, parentEmail = ? WHERE userId = ? ',
+        'UPDATE users SET firstName = ?, lastName = ?, mobile = ? WHERE userId = ? ',
         [
           firstName,
           lastName,
-          country,
           mobile,
-          parentEmail || '',
           userId,
         ],
         (error, result, field) => {
@@ -788,6 +818,7 @@ function getRandomArbitrary(min, max) {
 }
 
 module.exports = {
+  signup,
   login,
   changePassword,
   updateInfo,

@@ -2,16 +2,18 @@
 const mysql = require("mysql2");
 
 const host = "localhost";
+const port = null;
 const user = "root";
 const password = "password";
 const database = "arvamus"
 
 const pool = mysql.createPool({
   host,
+  port,
   user,
   password,
   database,
-  debug: false,
+  debug: true,
   multipleStatements: true,
 });
 
