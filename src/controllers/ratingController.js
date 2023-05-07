@@ -18,7 +18,7 @@ async function giveRating(req, res) {
     // check if reviewee exists
     const revieweeResponse = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'SELECT * FROM users WHERE email = ?',
+        'SELECT * FROM users WHERE email = $1',
         [req.body.revieweeEmail],
         (error, result, field) => {
           if (error) {
@@ -33,7 +33,7 @@ async function giveRating(req, res) {
               responseMessage: 'Reviewee does not exist',
             });
           }
-          resolve(result[0]);
+          resolve(result.rows[0]);
         }
       );
     });
@@ -41,7 +41,7 @@ async function giveRating(req, res) {
     // check if reviewer exists
     const reviewerResponse  = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'SELECT * FROM users WHERE userId = ?',
+        'SELECT * FROM users WHERE userId = $1',
         [req.body.reviewerId],
         (error, result, field) => {
           if (error) {
@@ -56,7 +56,7 @@ async function giveRating(req, res) {
               responseMessage: 'Reviewer does not exist',
             });
           }
-          resolve(result[0]);
+          resolve(result.rows[0]);
         }
       );
     });
@@ -65,7 +65,7 @@ async function giveRating(req, res) {
     const response = await new Promise((resolve, reject) => {
       reviewId = uuid.v4();
       dbConnection.query(
-        'INSERT INTO rating (ratingId, reviewerId, revieweeEmail, responsibility, behaviour, professionalism, proficiency, management, isDeleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO rating (ratingId, reviewerId, revieweeEmail, responsibility, behaviour, professionalism, proficiency, management, isDeleted) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
         [reviewId, req.body.reviewerId, req.body.revieweeEmail, req.body.responsibility, req.body.behaviour, req.body.professionalism, req.body.proficiency, req.body.management, 0],
         (error, result, field) => {
           if (error) {
@@ -97,7 +97,7 @@ async function getAllRatingsbyReviewer(req, res) {
     }
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'SELECT * FROM rating WHERE reviewerId = ? AND isDeleted = 0',
+        'SELECT * FROM rating WHERE reviewerId = $1 AND isDeleted = \'0\'',
         [req.body.reviewerId],
         (error, result, field) => {
           if (error) {
@@ -130,7 +130,7 @@ async function getRatingIdByRevieweeEmailAndReviewerId(req, res) {
     }
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'SELECT ratingId FROM rating WHERE reviewerId = ? AND revieweeEmail = ? AND isDeleted = 0',
+        'SELECT ratingId FROM rating WHERE reviewerId = $1 AND revieweeEmail = $2 AND isDeleted = \'0\'',
         [req.body.reviewerId, req.body.revieweeEmail],
         (error, result, field) => {
           if (error) {
@@ -164,9 +164,10 @@ async function updateRating(req, res) {
             responseMessage: 'Invalid input',
         });
     }
+    
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'UPDATE rating SET responsibility = ?, behaviour = ?, professionalism = ?, proficiency = ?, management = ? WHERE ratingId = ?',
+        'UPDATE rating SET responsibility = $1, behaviour = $2, professionalism = $3, proficiency = $4, management = $5 WHERE ratingId = $6',
         [req.body.responsibility, req.body.behaviour, req.body.professionalism, req.body.proficiency, req.body.management, req.body.ratingId],
         (error, result, field) => {
           if (error) {
@@ -176,6 +177,7 @@ async function updateRating(req, res) {
           resolve(result);
         }
       );
+      
     });
     console.log(response);
     return res.send({
@@ -200,7 +202,7 @@ async function deleteRating(req, res) {
     }
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'UPDATE rating SET isDeleted = 1 WHERE ratingId = ?',
+        'UPDATE rating SET isDeleted = \'1\'  WHERE ratingId = $1',
         [req.body.ratingId],
         (error, result, field) => {
           if (error) {

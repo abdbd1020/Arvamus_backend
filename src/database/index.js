@@ -1,13 +1,28 @@
 /* eslint-disable quotes */
-const mysql = require("mysql2");
+// const mysql = require("mysql2");
+const { Client,Pool } = require("pg");
+
+// const client = new Client({
+//   host    : 'localhost',
+//   port    : 5432,
+//   user    : 'postgres',
+//   password: 'password',
+//   database: 'arvamus'
+
+// })
+// client.connect()
 
 const host = "localhost";
-const port = null;
-const user = "root";
+// const port = null;
+const port = 5432;
+// const user = "root";
+const user = "postgres";
 const password = "password";
 const database = "arvamus"
 
-const pool = mysql.createPool({
+
+
+const pool = new Pool({
   host,
   port,
   user,
@@ -25,7 +40,7 @@ module.exports = {
       args.push(arguments[i]);
     }
     const callback = args[args.length - 1]; // last arg is callback
-    pool.getConnection((err, connection) => {
+    pool.connect((err, connection) => {
       if (err) {
         console.log(err);
         return callback(err);

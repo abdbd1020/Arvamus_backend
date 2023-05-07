@@ -3,8 +3,7 @@ const express = require('express');
 const userController = require('../controllers/userController');
 const router = express.Router();
 
-// router.get('/database_commit', dashboardController.databaseCommit);
-// router.get('/drop_tables', dashboardController.dropTables);
+router.get('/test_api', userController.testApi);
 
 
 module.exports = router;
