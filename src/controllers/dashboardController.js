@@ -6,17 +6,19 @@ async function getAllTeachers(req, res) {
   try {
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "SELECT * FROM users WHERE type = 'TEACHER'",
+        "SELECT * FROM users WHERE type = 'STUDENT'",
         (error, result, field) => {
           if (error) {
             res.status(500).json({ message: error.message });
             return;
           }
-          resolve(result);
+          resolve(result.rows);
         }
       );
     });
-    console.log(response);
+    response.forEach((element) => {
+      console.log(element.userid);
+    });
     return res.send({
       status: true,
       responseMessage: "All teachers",

@@ -25,6 +25,7 @@ async function signup(req, res) {
       responseMessage: "Invalid request",
     });
   }
+  console.log(req.body);
   try {
     // check if mail already exist
     const user = new Promise((resolve, reject) => {
@@ -99,6 +100,7 @@ async function signup(req, res) {
 
 // login
 async function login(req, res) {
+  console.log(req.body);
   if (!req || !req.body || !req.body.email || !req.body.password) {
     return res.send({
       status: false,
@@ -127,19 +129,23 @@ async function login(req, res) {
         }
       );
     });
-
     user.then((user) => {
       bcrypt.compare(password, user.password, (err, result) => {
         if (result) {
           userPrivateKey = decryptAES(user.privatekey, password);
           delete user.password;
+          delete user.publickey;
+          user.privatekey = userPrivateKey;
 
-          return res.send({
-            user,
+          // res.setHeader("Content-Type", "application/json");
+          console.log(user);
+          res.send({
+            user: user,
             status: true,
-            privatekey: userPrivateKey,
             responseMessage: "Login Successful",
           });
+          console.log("Login Successful");
+          return;
         }
         return res.send({
           status: false,
