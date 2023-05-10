@@ -56,6 +56,33 @@ async function getAllStaff(req, res) {
     res.status(500).json({ message: e.message });
   }
 }
+async function getAllTeachersAndStaff(req, res) {
+  const staff = ServerEnum.STAFF;
+  const teacher = ServerEnum.TEACHER;
+  try {
+    const response = await new Promise((resolve, reject) => {
+      dbConnection.query(
+        "SELECT * FROM users WHERE type = $1 OR type = $2",
+        [staff, teacher],
+        (error, result, field) => {
+          if (error) {
+            res.status(500).json({ message: error.message });
+            return;
+          }
+          resolve(result.rows);
+        }
+      );
+    });
+    return res.send({
+      status: true,
+      responseMessage: "All teachers ans  Staff",
+      response: response,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: e.message });
+  }
+}
 
 async function dropTables() {
   try {
@@ -176,4 +203,5 @@ module.exports = {
   databaseCommit,
   dropTables,
   getAllStaff,
+  getAllTeachersAndStaff,
 };
