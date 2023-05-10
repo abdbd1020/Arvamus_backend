@@ -1,12 +1,15 @@
 const uuid = require("uuid");
 const bcrypt = require("bcrypt");
 const dbConnection = require("../database");
+const { ServerEnum } = require("../../ServerEnum");
 
 async function getAllTeachers(req, res) {
+  const teacher = ServerEnum.TEACHER;
   try {
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "SELECT * FROM users WHERE type = 'STUDENT'",
+        "SELECT * FROM users WHERE type = $1",
+        [teacher],
         (error, result, field) => {
           if (error) {
             res.status(500).json({ message: error.message });
@@ -16,9 +19,7 @@ async function getAllTeachers(req, res) {
         }
       );
     });
-    response.forEach((element) => {
-      console.log(element.userid);
-    });
+    response.forEach((element) => {});
     return res.send({
       status: true,
       responseMessage: "All teachers",
@@ -29,24 +30,25 @@ async function getAllTeachers(req, res) {
     res.status(500).json({ message: e.message });
   }
 }
-async function getAllStuff(req, res) {
+async function getAllStaff(req, res) {
+  const staff = ServerEnum.STAFF;
   try {
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "SELECT * FROM users WHERE type = 'STUFF'",
+        "SELECT * FROM users WHERE type = $1",
+        [staff],
         (error, result, field) => {
           if (error) {
             res.status(500).json({ message: error.message });
             return;
           }
-          resolve(result);
+          resolve(result.rows);
         }
       );
     });
-    console.log(response);
     return res.send({
       status: true,
-      responseMessage: "All Stuff",
+      responseMessage: "All Staff",
       response: response,
     });
   } catch (e) {
@@ -98,6 +100,8 @@ async function databaseCommit(req, res) {
           publickey varchar(1024) NOT NULL,
           privatekey varchar(16384) NOT NULL,
           showRating char(2) NOT NULL DEFAULT 0,
+          designation varchar(255) NOT NULL,
+          department varchar(255) NOT NULL,
           PRIMARY KEY (userId),
           UNIQUE (email)
         );
@@ -107,6 +111,7 @@ async function databaseCommit(req, res) {
           revieweeEmail varchar(255) NULL,
           reviewText varchar(255) NULL,
           isDeleted char(2) NOT NULL,
+          isAnonymous char(2) NOT NULL,
           FOREIGN KEY (reviewerId) REFERENCES users(userId),
           FOREIGN KEY (revieweeEmail) REFERENCES users(email)
         );
@@ -119,6 +124,7 @@ async function databaseCommit(req, res) {
           professionalism char(36) NOT NULL,
           proficiency char(36) NOT NULL,
           management char(36) NOT NULL,
+          average char(36) NOT NULL,
           isDeleted char(2) NOT NULL,
           FOREIGN KEY (reviewerId) REFERENCES users(userId),
           FOREIGN KEY (revieweeEmail) REFERENCES users(email)
@@ -169,5 +175,5 @@ module.exports = {
   getAllTeachers,
   databaseCommit,
   dropTables,
-  getAllStuff,
+  getAllStaff,
 };

@@ -19,7 +19,7 @@ module.exports = {
 
     STUDENT: "STUDENT",
     TEACHER: "TEACHER",
-    ADMIN: "ADMIN",
+    STAFF: "ADMIN",
 
     FLASH_CARDS: "Flash Cards",
     DICTATION: "Dictation",

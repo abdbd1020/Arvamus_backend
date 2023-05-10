@@ -18,14 +18,16 @@ async function signup(req, res) {
     !req.body.email ||
     !req.body.password ||
     !req.body.mobile ||
-    !req.body.type
+    !req.body.type ||
+    !req.body.department ||
+    !req.body.designation
   ) {
     return res.send({
       status: false,
       responseMessage: "Invalid request",
     });
   }
-  console.log(req.body);
+
   try {
     // check if mail already exist
     const user = new Promise((resolve, reject) => {
@@ -53,7 +55,16 @@ async function signup(req, res) {
       .then(() => {
         // Code to execute when the promise is resolved
 
-        const { firstName, lastName, email, password, mobile, type } = req.body;
+        const {
+          firstName,
+          lastName,
+          email,
+          password,
+          mobile,
+          type,
+          department,
+          designation,
+        } = req.body;
         const userId = uuid.v4();
 
         let [publicKey, privatekey] = getPublicPrivateKey();
@@ -61,8 +72,8 @@ async function signup(req, res) {
 
         bcrypt.hash(password, 10, (err, hash) => {
           dbConnection.query(
-            `INSERT INTO users(userId, firstName, lastName, email, password, mobile, type, publicKey, privatekey)
-            VALUES ($1, $2, $3, $4, $5, $6, $7 , $8, $9)`,
+            `INSERT INTO users(userId, firstName, lastName, email, password, mobile, type, publicKey, privatekey, department, designation)
+            VALUES ($1, $2, $3, $4, $5, $6, $7 , $8, $9, $10, $11)`,
             [
               userId,
               firstName,
@@ -73,6 +84,8 @@ async function signup(req, res) {
               type,
               publicKey,
               encryptedPrivateKey,
+              department,
+              designation,
             ],
             (error, result, field) => {
               if (error) {
@@ -100,7 +113,6 @@ async function signup(req, res) {
 
 // login
 async function login(req, res) {
-  console.log(req.body);
   if (!req || !req.body || !req.body.email || !req.body.password) {
     return res.send({
       status: false,
@@ -119,6 +131,12 @@ async function login(req, res) {
             return;
           }
           if (result.length === 0) {
+            return res.send({
+              status: false,
+              responseMessage: "email does not exist",
+            });
+          }
+          if (result.rows.length === 0) {
             return res.send({
               status: false,
               responseMessage: "email does not exist",
@@ -293,8 +311,25 @@ async function changePassword(req, res) {
 }
 
 async function updateInfo(req, res) {
+  if (
+    !req ||
+    !req.body ||
+    !req.body.userId ||
+    !req.body.firstName ||
+    !req.body.lastName ||
+    !req.body.mobile ||
+    !req.body.department ||
+    !req.body.designation
+  ) {
+    return res.send({
+      status: false,
+      responseMessage: "Invalid request",
+    });
+  }
+
   try {
-    const { userId, firstName, lastName, mobile } = req.body;
+    const { userId, firstName, lastName, mobile, department, designation } =
+      req.body;
 
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
@@ -319,8 +354,8 @@ async function updateInfo(req, res) {
 
     await new Promise((resolve, reject) => {
       dbConnection.query(
-        "UPDATE users SET firstName = $1, lastName = $2, mobile = $3 WHERE userId = $4",
-        [firstName, lastName, mobile, userId],
+        "UPDATE users SET firstName = $1, lastName = $2, mobile = $3 , department = $4, designation = $5 WHERE userId = $6",
+        [firstName, lastName, mobile, department, designation, userId],
         (error, result, field) => {
           if (error) {
             res.status(401).json({

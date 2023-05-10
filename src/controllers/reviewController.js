@@ -11,7 +11,8 @@ async function giveReview(req, res) {
       !req.body.reviewerId ||
       !req.body.revieweeEmail ||
       !req.body.reviewText ||
-      !req.body.reviewerPrivateKey
+      !req.body.reviewerPrivateKey ||
+      !req.body.isAnonymous
     ) {
       res.status(500).json({ message: "Invalid input" });
       return;
@@ -78,13 +79,14 @@ async function giveReview(req, res) {
     const response = await new Promise((resolve, reject) => {
       reviewId = uuid.v4();
       dbConnection.query(
-        "INSERT INTO review (reviewId, reviewerId, revieweeEmail, reviewText, isDeleted) VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO review (reviewId, reviewerId, revieweeEmail, reviewText, isDeleted , isAnonymous) VALUES ($1, $2, $3, $4, $5, $6)",
         [
           reviewId,
           req.body.reviewerId,
           req.body.revieweeEmail,
           encryptedReviewText,
           0,
+          req.body.isAnonymous,
         ],
         (error, result, field) => {
           if (error) {
@@ -274,7 +276,8 @@ async function updateReview(req, res) {
       !req.body ||
       !req.body.reviewId ||
       !req.body.reviewText ||
-      !req.body.sharedKey
+      !req.body.sharedKey ||
+      !req.body.isAnonymous
     ) {
       res.status(500).json({ message: "Invalid input" });
       return;
@@ -282,8 +285,8 @@ async function updateReview(req, res) {
     encryptedReviewText = encryptAES(req.body.reviewText, req.body.sharedKey);
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "UPDATE review SET reviewText = $1 WHERE reviewId = $2",
-        [encryptedReviewText, req.body.reviewId],
+        "UPDATE review SET reviewText = $1, isAnonymous = $2 WHERE reviewId = $3",
+        [encryptedReviewText, req.body.isAnonymous, req.body.reviewId],
         (error, result, field) => {
           if (error) {
             res.status(500).json({ message: error.message });
