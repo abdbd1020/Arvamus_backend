@@ -68,6 +68,7 @@ async function signup(req, res) {
         const userId = uuid.v4();
 
         let [publicKey, privatekey] = getPublicPrivateKey();
+        console.log(privatekey);
         encryptedPrivateKey = encryptAES(privatekey, password);
 
         bcrypt.hash(password, 10, (err, hash) => {
@@ -133,13 +134,13 @@ async function login(req, res) {
           if (result.length === 0) {
             return res.send({
               status: false,
-              responseMessage: "email does not exist",
+              responseMessage: "Email does not exist",
             });
           }
           if (result.rows.length === 0) {
             return res.send({
               status: false,
-              responseMessage: "email does not exist",
+              responseMessage: "Email does not exist",
             });
           }
 

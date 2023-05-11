@@ -22,7 +22,7 @@ function getSharedSecretKey(bobPrivateKey, alicePublicKey) {
   const alicePublicKeyBuffer = Buffer.from(alicePublicKey, "hex");
   const bobSecretKey = bob.computeSecret(alicePublicKeyBuffer);
 
-  return bobSecretKey;
+  return bobSecretKey.toString("hex");
 }
 
 module.exports = {

@@ -1,7 +1,15 @@
 const dbConnection = require("../database");
 const uuid = require("uuid");
-const { encryptAES, decryptAES } = require("../Security/encryption");
+const {
+  encryptAES,
+  decryptAES,
+  decryptMessageOfReview,
+} = require("../Security/encryption");
 const { getSharedSecretKey } = require("../Security/diffieHelman");
+const {
+  getUserByEmail,
+  getUserById,
+} = require("../controllers/userController");
 // give review
 async function giveReview(req, res) {
   try {
@@ -19,48 +27,18 @@ async function giveReview(req, res) {
     }
 
     // check if reviewee exists
-    const revieweeResponse = await new Promise((resolve, reject) => {
-      dbConnection.query(
-        "SELECT * FROM users WHERE email = $1",
-        [req.body.revieweeEmail],
-        (error, result, field) => {
-          if (error) {
-            res.status(401).json({ message: error });
-            return;
-          }
-
-          if (result.length === 0) {
-            return res.send({
-              status: false,
-              responseMessage: "Reviewee does not exist",
-            });
-          }
-          resolve(result.rows[0]);
-        }
-      );
-    });
+    const revieweeResponse = await getUserByEmail(req.body.revieweeEmail);
+    if (!revieweeResponse) {
+      res.status(500).json({ message: "User Does not exist" });
+      return;
+    }
     revieweePublicKey = revieweeResponse.publickey;
     // check if reviewer exists
-    const reviewerResponse = await new Promise((resolve, reject) => {
-      dbConnection.query(
-        "SELECT * FROM users WHERE userId = $1",
-        [req.body.reviewerId],
-        (error, result, field) => {
-          if (error) {
-            res.status(401).json({ message: error });
-            return;
-          }
-
-          if (result.length === 0) {
-            return res.send({
-              status: false,
-              responseMessage: "Reviewer does not exist",
-            });
-          }
-          resolve(result.rows[0]);
-        }
-      );
-    });
+    const reviewerResponse = await getUserById(req.body.reviewerId);
+    if (!reviewerResponse) {
+      res.status(500).json({ message: "User Does not exist" });
+      return;
+    }
 
     reviewerPrivateKey = req.body.reviewerPrivateKey;
 
@@ -69,12 +47,8 @@ async function giveReview(req, res) {
       reviewerPrivateKey,
       revieweePublicKey
     );
-    const sharedSecretHex = sharedSecret.toString("hex");
     // encrypt review text
-    const encryptedReviewText = encryptAES(
-      req.body.reviewText,
-      sharedSecretHex
-    );
+    const encryptedReviewText = encryptAES(req.body.reviewText, sharedSecret);
 
     const response = await new Promise((resolve, reject) => {
       reviewId = uuid.v4();
@@ -110,9 +84,16 @@ async function giveReview(req, res) {
 // get all reviews by a reviewer
 async function getAllReviewsByReviewer(req, res) {
   try {
-    if (!req || !req.body || !req.body.reviewerId) {
+    if (!req || !req.body || !req.body.reviewerId || !req.body.privatekey) {
       res.status(500).json({ message: "Invalid input" });
       return;
+    }
+    const userById = await getUserById(req.body.reviewerId);
+    if (!userById) {
+      return res.send({
+        status: false,
+        responseMessage: "User does not exist",
+      });
     }
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
@@ -123,16 +104,99 @@ async function getAllReviewsByReviewer(req, res) {
             res.status(500).json({ message: error.message });
             return;
           }
-          resolve(result);
+          resolve(result.rows);
         }
       );
     });
+    // decrypt every message
+    for (let i = 0; i < response.length; i++) {
+      const userByEmail = await getUserByEmail(response[i].revieweeemail);
+      if (!userByEmail) {
+        res.send({
+          status: false,
+          responseMessage: "User does not exist",
+        });
+      }
+      response[i].revieweeName =
+        userByEmail.firstname + " " + userByEmail.lastname;
+      response[i].designation = userByEmail.designation;
+
+      const decryptedReviewText = await decryptMessageOfReview(
+        response[i].reviewText,
+        userByEmail.publickey,
+        req.body.privatekey
+      );
+      response[i].reviewtext = decryptedReviewText;
+    }
+
     return res.send({
       status: true,
       responseMessage: "All reviews by reviewer",
       response: response,
     });
-  } catch {
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: e.message });
+  }
+}
+
+async function getAllReviewsAndRatingByReviewer(req, res) {
+  try {
+    if (!req || !req.body || !req.body.reviewerId || !req.body.privatekey) {
+      res.status(500).json({ message: "Invalid input" });
+      return;
+    }
+    const userById = await getUserById(req.body.reviewerId);
+    if (!userById) {
+      return res.send({
+        status: false,
+        responseMessage: "User does not exist",
+      });
+    }
+
+    const response = await new Promise((resolve, reject) => {
+      // join rating and review table
+      dbConnection.query(
+        "SELECT *  ,   COALESCE(review.revieweeemail, rating.revieweeemail) AS revieweeemail, COALESCE(review.reviewerId, rating.reviewerId) AS reviewerId FROM review FULL OUTER JOIN rating ON review.reviewerId = rating.reviewerId AND review.revieweeemail = rating.revieweeemail WHERE review.reviewerId = $1 AND review.isDeleted = '0'",
+
+        [req.body.reviewerId],
+        (error, result, field) => {
+          if (error) {
+            res.status(500).json({ message: error.message });
+            return;
+          }
+          resolve(result.rows);
+        }
+      );
+    });
+    console.log(response);
+    for (let i = 0; i < response.length; i++) {
+      // user by email
+      const userByEmail = await getUserByEmail(response[i].revieweeemail);
+      if (!userByEmail) {
+        res.send({
+          status: false,
+          responseMessage: "User does not exist",
+        });
+      }
+      response[i].revieweeName =
+        userByEmail.firstname + " " + userByEmail.lastname;
+      response[i].designation = userByEmail.designation;
+
+      const decryptedReviewText = await decryptMessageOfReview(
+        response[i].reviewText,
+        userByEmail.publickey,
+        req.body.privatekey
+      );
+      response[i].reviewtext = decryptedReviewText;
+    }
+
+    return res.send({
+      status: true,
+      responseMessage: "All reviews by reviewer",
+      response: response,
+    });
+  } catch (e) {
     console.log(e);
     res.status(500).json({ message: e.message });
   }
@@ -145,6 +209,13 @@ async function getAllReviewsOfReveiwee(req, res) {
       res.status(500).json({ message: "Invalid input" });
       return;
     }
+    const userByEmail = await getUserByEmail(req.body.reveiweeemail);
+    if (!userByEmail) {
+      return res.send({
+        status: false,
+        responseMessage: "User does not exist",
+      });
+    }
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
         "SELECT * FROM review WHERE revieweeEmail = $1 AND isDeleted = '0'",
@@ -154,16 +225,35 @@ async function getAllReviewsOfReveiwee(req, res) {
             res.status(500).json({ message: error.message });
             return;
           }
-          resolve(result);
+          resolve(result.rows);
         }
       );
     });
+    // decrypt every message
+    for (let i = 0; i < response.length; i++) {
+      const userById = await getUserById(response[i].reviewerid);
+      if (!userById) {
+        return res.send({
+          status: false,
+          responseMessage: "User does not exist",
+        });
+      }
+      response[i].reviewerName = userById.firstname + " " + userById.lastname;
+      response[i].designation = userById.designation;
+
+      const decryptedReviewText = await decryptMessageOfReview(
+        response[i].reviewText,
+        userById.publickey,
+        req.body.privatekey
+      );
+      response[i].reviewtext = decryptedReviewText;
+    }
     return res.send({
       status: true,
       responseMessage: "All reviews of reveiwee",
       response: response,
     });
-  } catch {
+  } catch (e) {
     console.log(e);
     res.status(500).json({ message: e.message });
   }
@@ -184,47 +274,20 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
       return;
     }
 
-    const reviewerResponse = await new Promise((resolve, reject) => {
-      dbConnection.query(
-        "SELECT * FROM users WHERE userId = $1",
-        [req.body.reviewerId],
-        (error, result, field) => {
-          if (error) {
-            res.status(401).json({ message: error });
-            return;
-          }
-
-          if (result.length === 0) {
-            return res.send({
-              status: false,
-              responseMessage: "Reviewer does not exist",
-            });
-          }
-          resolve(result.rows[0]);
-        }
-      );
-    });
-
-    const reveiweeResponse = await new Promise((resolve, reject) => {
-      dbConnection.query(
-        "SELECT * FROM users WHERE email = $1",
-        [req.body.revieweeEmail],
-        (error, result, field) => {
-          if (error) {
-            res.status(401).json({ message: error });
-            return;
-          }
-
-          if (result.length === 0) {
-            return res.send({
-              status: false,
-              responseMessage: "Reviewee does not exist",
-            });
-          }
-          resolve(result.rows[0]);
-        }
-      );
-    });
+    const reviewerResponse = await getUserById(req.body.reviewerId);
+    if (!reviewerResponse) {
+      return res.send({
+        status: false,
+        responseMessage: "Reviewer does not exist",
+      });
+    }
+    const reveiweeResponse = await getUserByEmail(req.body.revieweeEmail);
+    if (!reveiweeResponse) {
+      return res.send({
+        status: false,
+        responseMessage: "Reviewee does not exist",
+      });
+    }
     let publickey = "";
     if (req.body.isReviewer === "0") {
       // get reviewer public key
@@ -243,29 +306,28 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
             res.status(500).json({ message: error.message });
             return;
           }
-          resolve(result);
+          resolve(result.rows);
         }
       );
     });
 
     let sharedkey = getSharedSecretKey(req.body.privatekey, publickey);
-    // convert shared key to string
-    sharedkey = sharedkey.toString("hex");
-    // decrypt review text
-    response.rows.forEach((element) => {
-      element.reviewtext = decryptAES(element.reviewtext, sharedkey);
-    });
 
-    return res.send({
-      status: true,
-      responseMessage: "Successfull",
-      response: response,
-      sharedkey: sharedkey,
-    });
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({ message: e.message });
-  }
+    // decrypt review text
+    try {
+      response[0].reviewtext = decryptAES(response[0].reviewtext, sharedkey);
+
+      return res.send({
+        status: true,
+        responseMessage: "Successfull",
+        response: response[0],
+        sharedkey: sharedkey,
+      });
+    } catch (e) {
+      console.log(e);
+      res.status(500).json({ message: e.message });
+    }
+  } catch (e) {}
 }
 
 // update review
@@ -346,4 +408,5 @@ module.exports = {
   updateReview,
   getAllReviewsOfReveiwee,
   deleteReview,
+  getAllReviewsAndRatingByReviewer,
 };

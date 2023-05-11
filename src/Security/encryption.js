@@ -1,4 +1,9 @@
 const crypto = require("crypto");
+const {
+  getUserByEmail,
+  getUserById,
+} = require("../controllers/userController");
+const { getSharedSecretKey } = require("../Security/diffieHelman");
 
 const algorithm = "aes-256-cbc";
 
@@ -37,7 +42,20 @@ function get32bytekey(key) {
   return key;
 }
 
+async function decryptMessageOfReview(reviewText, publicKey, privatekey) {
+  // get shared secret
+  const sharedSecret = getSharedSecretKey(privatekey, publicKey);
+  try {
+    // encrypt review text
+    const decryptedReviewText = decryptAES(reviewText, sharedSecret);
+    return decryptedReviewText;
+  } catch (err) {
+    return "bad decrypt";
+  }
+}
+
 module.exports = {
   encryptAES,
   decryptAES,
+  decryptMessageOfReview,
 };

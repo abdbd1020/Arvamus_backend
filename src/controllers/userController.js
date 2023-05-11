@@ -61,9 +61,65 @@ async function getPublicKeybyUserId(req, res) {
     res.status(500).json({ message: e.message });
   }
 }
-//
+
+// check if email exists
+async function getUserByEmail(email) {
+  if (!email) {
+    return false;
+  }
+  try {
+    const response = await new Promise((resolve, reject) => {
+      dbConnection.query(
+        "SELECT * FROM users WHERE email = $1",
+        [email],
+        (error, result, field) => {
+          if (error) {
+            return false;
+          }
+          resolve(result.rows[0]);
+        }
+      );
+    });
+    if (response) {
+      return response;
+    }
+    return null;
+  } catch (e) {
+    console.log(e);
+    return null;
+  }
+}
+// check user by ID
+async function getUserById(useId) {
+  if (!useId) {
+    return false;
+  }
+  try {
+    const response = await new Promise((resolve, reject) => {
+      dbConnection.query(
+        "SELECT * FROM users WHERE userId = $1",
+        [useId],
+        (error, result, field) => {
+          if (error) {
+            return false;
+          }
+          resolve(result.rows[0]);
+        }
+      );
+    });
+    if (response) {
+      return response;
+    }
+    return null;
+  } catch (e) {
+    console.log(e);
+    return null;
+  }
+}
 
 module.exports = {
   getPublicKeybyEmail,
   getPublicKeybyUserId,
+  getUserByEmail,
+  getUserById,
 };
