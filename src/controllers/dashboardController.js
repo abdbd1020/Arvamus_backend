@@ -139,6 +139,7 @@ async function databaseCommit(req, res) {
           reviewText varchar(255) NULL,
           isDeleted char(2) NOT NULL,
           isAnonymous char(2) NOT NULL,
+          date varchar(255) NULL,
           FOREIGN KEY (reviewerId) REFERENCES users(userId),
           FOREIGN KEY (revieweeEmail) REFERENCES users(email)
         );

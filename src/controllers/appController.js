@@ -87,8 +87,7 @@ async function signup(req, res) {
             ],
             (error, result, field) => {
               if (error) {
-                console.log(error);
-                return;
+                return res.send(ServerEnum.INTERNAL_SERVER_ERROR);
               }
             }
           );
@@ -154,7 +153,6 @@ async function login(req, res) {
           user.privatekey = userPrivateKey;
 
           // res.setHeader("Content-Type", "application/json");
-          console.log(user);
           res.send({
             user: user,
             status: true,

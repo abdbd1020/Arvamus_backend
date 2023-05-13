@@ -331,7 +331,7 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
       return res.send(ServerEnum.USER_DOES_NOT_EXIST);
     }
     let publickey = "";
-    if (req.body.isReviewer === "0") {
+    if (req.body.isReviewer === false) {
       // get reviewer public key
       publickey = reviewerResponse.publickey;
     } else {
@@ -351,9 +351,13 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
         }
       );
     });
-
     if (response.length === 0) {
-      return res.send(ServerEnum.NO_REVIEW_FOUND);
+      return res.send({
+        status: false,
+        responseMessage: "NO review found",
+        response: {},
+        sharedkey: null,
+      });
     }
 
     let sharedkey = getSharedSecretKey(req.body.privatekey, publickey);
@@ -361,12 +365,11 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
     // decrypt review text
     try {
       response[0].reviewtext = decryptAES(response[0].reviewtext, sharedkey);
-
+      response[0].sharedkey = sharedkey;
       return res.send({
         status: true,
         responseMessage: "Successfull",
         response: response[0],
-        sharedkey: sharedkey,
       });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -442,6 +445,7 @@ async function getReviewAndRatingByReviewerIdAndRevieweeEmail(req, res) {
 
 // update review
 async function updateReview(req, res) {
+  console.log("updateReview", req.body);
   try {
     if (
       !req ||
@@ -454,6 +458,7 @@ async function updateReview(req, res) {
       res.status(500).json({ message: "Invalid input" });
       return;
     }
+
     encryptedReviewText = encryptAES(req.body.reviewText, req.body.sharedKey);
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(

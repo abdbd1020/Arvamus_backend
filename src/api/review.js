@@ -13,12 +13,12 @@ router.post(
   reviewController.getReviewByRevieweeEmailAndReviewerId
 );
 
-router.get(
+router.post(
   "/get_reviews_and_ratings_by_reviewer",
   reviewController.getAllReviewsAndRatingByReviewer
 );
 
-router.get(
+router.post(
   "/get_reviews_and_ratings_of_reviewee",
   reviewController.getAllReviewsAndRatingOfReviewee
 );
