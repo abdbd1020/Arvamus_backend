@@ -7,6 +7,7 @@ const { ServerEnum } = require("../../ServerEnum");
 const { sendMail } = require("./mail");
 const { getPublicPrivateKey } = require("../Security/diffieHelman");
 const { encryptAES, decryptAES } = require("../Security/encryption");
+const { userByEmail } = require("./userController");
 
 // register
 async function signup(req, res) {
@@ -22,10 +23,7 @@ async function signup(req, res) {
     !req.body.department ||
     !req.body.designation
   ) {
-    return res.send({
-      status: false,
-      responseMessage: "Invalid request",
-    });
+    return res.send(ServerEnum.INVALID_INPUT);
   }
 
   try {
@@ -68,7 +66,6 @@ async function signup(req, res) {
         const userId = uuid.v4();
 
         let [publicKey, privatekey] = getPublicPrivateKey();
-        console.log(privatekey);
         encryptedPrivateKey = encryptAES(privatekey, password);
 
         bcrypt.hash(password, 10, (err, hash) => {

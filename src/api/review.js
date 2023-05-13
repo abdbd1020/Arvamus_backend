@@ -8,7 +8,7 @@ router.get(
   "/get_reviews_by_reviewer",
   reviewController.getAllReviewsByReviewer
 );
-router.get(
+router.post(
   "/get_review_by_reviewee_email_and_reviewer_id",
   reviewController.getReviewByRevieweeEmailAndReviewerId
 );
@@ -16,6 +16,15 @@ router.get(
 router.get(
   "/get_reviews_and_ratings_by_reviewer",
   reviewController.getAllReviewsAndRatingByReviewer
+);
+
+router.get(
+  "/get_reviews_and_ratings_of_reviewee",
+  reviewController.getAllReviewsAndRatingOfReviewee
+);
+router.get(
+  "/get_review_and_rating_by_reviewer_id_and_reviewee_email",
+  reviewController.getReviewAndRatingByReviewerIdAndRevieweeEmail
 );
 
 router.post("/update_review", reviewController.updateReview);

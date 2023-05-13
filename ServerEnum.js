@@ -21,35 +21,26 @@ module.exports = {
     TEACHER: "TEACHER",
     STAFF: "ADMIN",
 
-    FLASH_CARDS: "Flash Cards",
-    DICTATION: "Dictation",
-
-    WITHOUT_FORMULA: "Without Formula",
-    BIG_FRIENDS: "Big Friends",
-    SMALL_FRIENDS: "Small Friends",
-    COMBINED_FORMULA: "Combined Formula",
-
-    // speed is in milliseconds
-    ADD_SPEED_VERY_SLOW: 4000,
-    ADD_SPEED_SLOW: 3000,
-    ADD_SPEED_MEDIUM: 2500,
-    ADD_SPEED_FAST: 1500,
-
-    SUB_SPEED_VERY_SLOW: 4000,
-    SUB_SPEED_SLOW: 3000,
-    SUB_SPEED_MEDIUM: 2500,
-    SUB_SPEED_FAST: 1500,
-
-    MUL_SPEED_VERY_SLOW: 4000,
-    MUL_SPEED_SLOW: 3000,
-    MUL_SPEED_MEDIUM: 2500,
-    MUL_SPEED_FAST: 1500,
-
-    DIV_SPEED_VERY_SLOW: 4000,
-    DIV_SPEED_SLOW: 3000,
-    DIV_SPEED_MEDIUM: 2500,
-    DIV_SPEED_FAST: 1500,
-
+    USER_DOES_NOT_EXIST: {
+      status: false,
+      message: "User does not exist",
+    },
+    INVALID_PASSWORD: {
+      status: false,
+      message: "Invalid password",
+    },
+    INVALID_INPUT: {
+      status: false,
+      message: "Invalid input",
+    },
+    INVALID: {
+      status: false,
+      message: "Invalid",
+    },
+    INTERNAL_SERVER_ERROR: {
+      status: false,
+      message: "Internal server error",
+    },
     STATUS_ACTIVE: "ACTIVE",
     STATUS_INACTIVE: "INACTIVE",
 

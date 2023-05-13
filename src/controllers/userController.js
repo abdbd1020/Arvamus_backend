@@ -92,7 +92,7 @@ async function getUserByEmail(email) {
 // check user by ID
 async function getUserById(useId) {
   if (!useId) {
-    return false;
+    return null;
   }
   try {
     const response = await new Promise((resolve, reject) => {
@@ -101,9 +101,36 @@ async function getUserById(useId) {
         [useId],
         (error, result, field) => {
           if (error) {
-            return false;
+            reject(error);
+            return null;
           }
           resolve(result.rows[0]);
+        }
+      );
+    });
+    if (response) {
+      return response;
+    }
+    return null;
+  } catch (e) {
+    console.log(e);
+    return null;
+  }
+}
+async function ratingbyUser(userId) {
+  if (!userId) {
+    return false;
+  }
+  try {
+    const response = await new Promise((resolve, reject) => {
+      dbConnection.query(
+        "SELECT * FROM reviews WHERE revieweeid = $1",
+        [userId],
+        (error, result, field) => {
+          if (error) {
+            return false;
+          }
+          resolve(result.rows);
         }
       );
     });

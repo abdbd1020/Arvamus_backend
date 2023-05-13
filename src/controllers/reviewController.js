@@ -10,6 +10,7 @@ const {
   getUserByEmail,
   getUserById,
 } = require("../controllers/userController");
+const { ServerEnum } = require("../../ServerEnum");
 // give review
 async function giveReview(req, res) {
   try {
@@ -29,7 +30,10 @@ async function giveReview(req, res) {
     // check if reviewee exists
     const revieweeResponse = await getUserByEmail(req.body.revieweeEmail);
     if (!revieweeResponse) {
-      res.status(500).json({ message: "User Does not exist" });
+      res.status(500).json({
+        status: false,
+        message: "User Does not exist",
+      });
       return;
     }
     revieweePublicKey = revieweeResponse.publickey;
@@ -77,7 +81,6 @@ async function giveReview(req, res) {
       response: response,
     });
   } catch (e) {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
@@ -90,10 +93,7 @@ async function getAllReviewsByReviewer(req, res) {
     }
     const userById = await getUserById(req.body.reviewerId);
     if (!userById) {
-      return res.send({
-        status: false,
-        responseMessage: "User does not exist",
-      });
+      return res.send(ServerEnum.USER_DOES_NOT_EXIST);
     }
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
@@ -122,7 +122,7 @@ async function getAllReviewsByReviewer(req, res) {
       response[i].designation = userByEmail.designation;
 
       const decryptedReviewText = await decryptMessageOfReview(
-        response[i].reviewText,
+        response[i].reviewtext,
         userByEmail.publickey,
         req.body.privatekey
       );
@@ -135,7 +135,6 @@ async function getAllReviewsByReviewer(req, res) {
       response: response,
     });
   } catch (e) {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
@@ -148,10 +147,7 @@ async function getAllReviewsAndRatingByReviewer(req, res) {
     }
     const userById = await getUserById(req.body.reviewerId);
     if (!userById) {
-      return res.send({
-        status: false,
-        responseMessage: "User does not exist",
-      });
+      return res.send(ServerEnum.USER_DOES_NOT_EXIST);
     }
 
     const response = await new Promise((resolve, reject) => {
@@ -169,7 +165,6 @@ async function getAllReviewsAndRatingByReviewer(req, res) {
         }
       );
     });
-    console.log(response);
     for (let i = 0; i < response.length; i++) {
       // user by email
       const userByEmail = await getUserByEmail(response[i].revieweeemail);
@@ -184,7 +179,7 @@ async function getAllReviewsAndRatingByReviewer(req, res) {
       response[i].designation = userByEmail.designation;
 
       const decryptedReviewText = await decryptMessageOfReview(
-        response[i].reviewText,
+        response[i].reviewtext,
         userByEmail.publickey,
         req.body.privatekey
       );
@@ -197,7 +192,61 @@ async function getAllReviewsAndRatingByReviewer(req, res) {
       response: response,
     });
   } catch (e) {
-    console.log(e);
+    res.status(500).json({ message: e.message });
+  }
+}
+
+async function getAllReviewsAndRatingOfReviewee(req, res) {
+  if (!req || !req.body || !req.body.revieweeemail || !req.body.privatekey) {
+    res.send(ServerEnum.INVALID_INPUT);
+    return;
+  }
+  try {
+    const userByEmail = await getUserByEmail(req.body.revieweeemail);
+    if (!userByEmail) {
+      res.send(ServerEnum.USER_DOES_NOT_EXIST);
+      return;
+    }
+    const response = await new Promise((resolve, reject) => {
+      // join rating and review table
+      dbConnection.query(
+        "SELECT *  ,   COALESCE(review.revieweeemail, rating.revieweeemail) AS revieweeemail, COALESCE(review.reviewerId, rating.reviewerId) AS reviewerId FROM review FULL OUTER JOIN rating ON review.reviewerId = rating.reviewerId AND review.revieweeemail = rating.revieweeemail WHERE review.revieweeemail = $1 AND review.isDeleted = '0'",
+
+        [req.body.revieweeemail],
+        (error, result, field) => {
+          if (error) {
+            res.status(500).json({ message: error.message });
+            return;
+          }
+          resolve(result.rows);
+        }
+      );
+    });
+    for (let i = 0; i < response.length; i++) {
+      const userById = await getUserById(response[i].reviewerid);
+
+      if (!userById) {
+        res.send({
+          status: false,
+          responseMessage: "User does not exist",
+        });
+      }
+      response[i].reviewerName = userById.firstname + " " + userById.lastname;
+
+      const decryptedReviewText = await decryptMessageOfReview(
+        response[i].reviewtext,
+        userById.publickey,
+        req.body.privatekey
+      );
+      response[i].reviewtext = decryptedReviewText;
+    }
+
+    return res.send({
+      status: true,
+      responseMessage: "All reviews of revieweee",
+      response: response,
+    });
+  } catch (e) {
     res.status(500).json({ message: e.message });
   }
 }
@@ -242,7 +291,7 @@ async function getAllReviewsOfReveiwee(req, res) {
       response[i].designation = userById.designation;
 
       const decryptedReviewText = await decryptMessageOfReview(
-        response[i].reviewText,
+        response[i].reviewtext,
         userById.publickey,
         req.body.privatekey
       );
@@ -254,7 +303,6 @@ async function getAllReviewsOfReveiwee(req, res) {
       response: response,
     });
   } catch (e) {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
@@ -276,17 +324,75 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
 
     const reviewerResponse = await getUserById(req.body.reviewerId);
     if (!reviewerResponse) {
-      return res.send({
-        status: false,
-        responseMessage: "Reviewer does not exist",
-      });
+      return res.send(ServerEnum.USER_DOES_NOT_EXIST);
     }
     const reveiweeResponse = await getUserByEmail(req.body.revieweeEmail);
     if (!reveiweeResponse) {
+      return res.send(ServerEnum.USER_DOES_NOT_EXIST);
+    }
+    let publickey = "";
+    if (req.body.isReviewer === "0") {
+      // get reviewer public key
+      publickey = reviewerResponse.publickey;
+    } else {
+      // get reveiwee public key
+      publickey = reveiweeResponse.publickey;
+    }
+    const response = await new Promise((resolve, reject) => {
+      dbConnection.query(
+        "SELECT * FROM review WHERE reviewerId = $1 AND revieweeEmail = $2 AND isDeleted = '0'",
+        [req.body.reviewerId, req.body.revieweeEmail],
+        (error, result, field) => {
+          if (error) {
+            res.status(500).json({ message: error.message });
+            return;
+          }
+          resolve(result.rows);
+        }
+      );
+    });
+
+    if (response.length === 0) {
+      return res.send(ServerEnum.NO_REVIEW_FOUND);
+    }
+
+    let sharedkey = getSharedSecretKey(req.body.privatekey, publickey);
+
+    // decrypt review text
+    try {
+      response[0].reviewtext = decryptAES(response[0].reviewtext, sharedkey);
+
       return res.send({
-        status: false,
-        responseMessage: "Reviewee does not exist",
+        status: true,
+        responseMessage: "Successfull",
+        response: response[0],
+        sharedkey: sharedkey,
       });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  } catch (e) {}
+}
+async function getReviewAndRatingByReviewerIdAndRevieweeEmail(req, res) {
+  if (
+    !req ||
+    !req.body ||
+    !req.body.reviewerId ||
+    !req.body.revieweeEmail ||
+    !req.body.privatekey ||
+    !req.body.isReviewer
+  ) {
+    res.send(ServerEnum.INVALID_INPUT);
+    return;
+  }
+  try {
+    const reviewerResponse = await getUserById(req.body.reviewerId);
+    if (!reviewerResponse) {
+      return res.send(ServerEnum.USER_DOES_NOT_EXIST);
+    }
+    const reveiweeResponse = await getUserByEmail(req.body.revieweeEmail);
+    if (!reveiweeResponse) {
+      return res.send(ServerEnum.USER_DOES_NOT_EXIST);
     }
     let publickey = "";
     if (req.body.isReviewer === "0") {
@@ -299,8 +405,8 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
 
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "SELECT * FROM review WHERE reviewerId = $1 AND revieweeEmail = $2 AND isDeleted = '0'",
-        [req.body.reviewerId, req.body.revieweeEmail],
+        "SELECT *  ,   COALESCE(review.revieweeemail, rating.revieweeemail) AS revieweeemail, COALESCE(review.reviewerId, rating.reviewerId) AS reviewerId FROM review FULL OUTER JOIN rating ON review.reviewerId = rating.reviewerId AND review.revieweeemail = rating.revieweeemail WHERE review.revieweeemail = $1 AND review.reviewerId = $2 AND review.isDeleted = '0'",
+        [req.body.revieweeEmail, req.body.reviewerId],
         (error, result, field) => {
           if (error) {
             res.status(500).json({ message: error.message });
@@ -316,6 +422,9 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
     // decrypt review text
     try {
       response[0].reviewtext = decryptAES(response[0].reviewtext, sharedkey);
+      response[0].revieweeName =
+        reveiweeResponse.firstname + " " + reveiweeResponse.lastname;
+      response[0].designation = reveiweeResponse.designation;
 
       return res.send({
         status: true,
@@ -324,10 +433,11 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
         sharedkey: sharedkey,
       });
     } catch (e) {
-      console.log(e);
       res.status(500).json({ message: e.message });
     }
-  } catch (e) {}
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 }
 
 // update review
@@ -365,7 +475,6 @@ async function updateReview(req, res) {
       response: response,
     });
   } catch {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
@@ -396,7 +505,6 @@ async function deleteReview(req, res) {
       response: response,
     });
   } catch {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
@@ -409,4 +517,6 @@ module.exports = {
   getAllReviewsOfReveiwee,
   deleteReview,
   getAllReviewsAndRatingByReviewer,
+  getAllReviewsAndRatingOfReviewee,
+  getReviewAndRatingByReviewerIdAndRevieweeEmail,
 };
