@@ -11,6 +11,7 @@ const { userByEmail } = require("./userController");
 
 // register
 async function signup(req, res) {
+  console.log(req.body);
   if (
     !req ||
     !req.body ||
@@ -23,6 +24,7 @@ async function signup(req, res) {
     !req.body.department ||
     !req.body.designation
   ) {
+    console.log("Invalid request");
     return res.send(ServerEnum.INVALID_INPUT);
   }
 
@@ -70,8 +72,8 @@ async function signup(req, res) {
 
         bcrypt.hash(password, 10, (err, hash) => {
           dbConnection.query(
-            `INSERT INTO users(userId, firstName, lastName, email, password, mobile, type, publicKey, privatekey, department, designation)
-            VALUES ($1, $2, $3, $4, $5, $6, $7 , $8, $9, $10, $11)`,
+            `INSERT INTO users(userId, firstName, lastName, email, password, mobile, type, publicKey, privatekey, department, designation,ratingCount,averageRating)
+            VALUES ($1, $2, $3, $4, $5, $6, $7 , $8, $9, $10, $11, $12, $13)`,
             [
               userId,
               firstName,
@@ -84,6 +86,8 @@ async function signup(req, res) {
               encryptedPrivateKey,
               department,
               designation,
+              0,
+              0,
             ],
             (error, result, field) => {
               if (error) {

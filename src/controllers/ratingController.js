@@ -1,12 +1,11 @@
 const dbConnection = require("../database");
 const uuid = require("uuid");
-
+const { ServerEnum } = require("../../ServerEnum");
+const { getUserById, getUserByEmail } = require("./userController");
 // `ratingId` char(36) PRIMARY KEY NOT NULL,`reviewerId` char(36) NOT NULL,`revieweeEmail` char(36) NOT NULL,`responsibility` char(36) NOT NULL, `behaviour` char(36) NULL,`professionalism` char(36) NOT NULL,`proficiency` char(36) NOT NULL,`management` char(36) NOT NULL,`isDeleted` char(2) NOT NULL,
 //
 // give review
 async function giveRating(req, res) {
-  console.log(req.body);
-
   try {
     if (
       !req.body.reviewerId ||
@@ -23,50 +22,15 @@ async function giveRating(req, res) {
       });
     }
     // check if reviewee exists
-    const revieweeResponse = await new Promise((resolve, reject) => {
-      dbConnection.query(
-        "SELECT * FROM users WHERE email = $1",
-        [req.body.revieweeEmail],
-        (error, result, field) => {
-          if (error) {
-            res.status(401).json({ message: error });
-            return;
-          }
-          console.log(result);
-
-          if (result.length === 0) {
-            return res.send({
-              status: false,
-              responseMessage: "Reviewee does not exist",
-            });
-          }
-          resolve(result.rows[0]);
-        }
-      );
-    });
-
+    const revieweeResponse = getUserByEmail(req.body.revieweeEmail);
+    if (!revieweeResponse) {
+      return res.send(ServerEnum.USER_NOT_FOUND);
+    }
     // check if reviewer exists
-    const reviewerResponse = await new Promise((resolve, reject) => {
-      dbConnection.query(
-        "SELECT * FROM users WHERE userId = $1",
-        [req.body.reviewerId],
-        (error, result, field) => {
-          if (error) {
-            res.status(401).json({ message: error });
-            return;
-          }
-          console.log(result);
-
-          if (result.length === 0) {
-            return res.send({
-              status: false,
-              responseMessage: "Reviewer does not exist",
-            });
-          }
-          resolve(result.rows[0]);
-        }
-      );
-    });
+    const reviewerResponse = getUserById(req.body.reviewerId);
+    if (!reviewerResponse) {
+      return res.send(ServerEnum.USER_NOT_FOUND);
+    }
 
     const {
       reviewerId,
@@ -113,7 +77,24 @@ async function giveRating(req, res) {
         }
       );
     });
-    console.log(response);
+    const ratingCount = revieweeResponse.ratingCount + 1;
+    const averageRating =
+      (revieweeResponse.averageRating + averageReview) / ratingCount;
+    // update reviewee average review
+    const updateRevieweeAverageReview = await new Promise((resolve, reject) => {
+      dbConnection.query(
+        "UPDATE users SET averageRating = $1 , ratingCount = $2   WHERE email = $3",
+        [averageRating, ratingCount, revieweeEmail],
+        (error, result, field) => {
+          if (error) {
+            res.status(500).json({ message: error.message });
+            return;
+          }
+          resolve(result);
+        }
+      );
+    });
+
     return res.send({
       status: true,
       responseMessage: "Rating given",
@@ -156,9 +137,7 @@ async function getAllRatingsbyReviewer(req, res) {
     res.status(500).json({ message: e.message });
   }
 }
-// get reviewId by revieweeEmail and reviewerId
-async function getRatingIdByRevieweeEmailAndReviewerId(req, res) {
-  console.log(req.body);
+async function getRatingByRevieweeEmailAndReviewerId(req, res) {
   try {
     if (!req || !req.body || !req.body.reviewerId || !req.body.revieweeEmail) {
       res.status(500).json({ message: "Invalid input" });
@@ -166,18 +145,27 @@ async function getRatingIdByRevieweeEmailAndReviewerId(req, res) {
     }
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "SELECT ratingId FROM rating WHERE reviewerId = $1 AND revieweeEmail = $2 AND isDeleted = '0'",
+        "SELECT * FROM rating WHERE reviewerId = $1 AND revieweeEmail = $2 AND isDeleted = '0'",
         [req.body.reviewerId, req.body.revieweeEmail],
         (error, result, field) => {
           if (error) {
             res.status(500).json({ message: error.message });
             return;
           }
-          resolve(result);
+          resolve(result.rows);
         }
       );
     });
-    console.log(response);
+
+    if (response.length === 0) {
+      return res.send({
+        status: false,
+        responseMessage: ServerEnum.RESPONSE_NO_RATING_FOUND,
+        response: {},
+        sharedkey: null,
+      });
+    }
+
     return res.send({
       status: true,
       responseMessage: "Successfull",
@@ -191,7 +179,6 @@ async function getRatingIdByRevieweeEmailAndReviewerId(req, res) {
 
 // update review
 async function updateRating(req, res) {
-  console.log(req.body);
   try {
     if (
       !req ||
@@ -209,15 +196,32 @@ async function updateRating(req, res) {
       });
     }
 
+    // get reviewww email from rating id
+    const revieweeEmailResponse = await new Promise((resolve, reject) => {
+      dbConnection.query(
+        "SELECT * FROM rating WHERE ratingId = $1",
+        [req.body.ratingId],
+        (error, result, field) => {
+          if (error) {
+            res.status(500).json({ message: error.message });
+            return;
+          }
+          resolve(result.rows[0]);
+        }
+      );
+    });
+    const revieweeEmail = revieweeEmailResponse.revieweeEmail;
+
+    // get reviewee details
+    const revieweeResponse = await getUserByEmail(revieweeEmail);
+
     const {
       ratingId,
-      revieweeEmail,
       responsibility,
       behaviour,
       professionalism,
       proficiency,
       management,
-      isDeleted,
     } = req.body;
 
     // get average review
@@ -246,11 +250,26 @@ async function updateRating(req, res) {
             res.status(500).json({ message: error.message });
             return;
           }
+          resolve(result.rows);
+        }
+      );
+    });
+    const averageRating =
+      (revieweeResponse.averageRating + averageReview) / ratingCount;
+    // update reviewee average review
+    const updateRevieweeAverageReview = await new Promise((resolve, reject) => {
+      dbConnection.query(
+        "UPDATE users SET averageRating = $1   WHERE email = $3",
+        [averageRating, revieweeEmail],
+        (error, result, field) => {
+          if (error) {
+            res.status(500).json({ message: error.message });
+            return;
+          }
           resolve(result);
         }
       );
     });
-    console.log(response);
     return res.send({
       status: true,
       responseMessage: "Rating updated",
@@ -298,7 +317,7 @@ async function deleteRating(req, res) {
 module.exports = {
   giveRating,
   getAllRatingsbyReviewer,
-  getRatingIdByRevieweeEmailAndReviewerId,
+  getRatingByRevieweeEmailAndReviewerId,
   updateRating,
   deleteRating,
 };

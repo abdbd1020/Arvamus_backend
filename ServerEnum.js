@@ -17,6 +17,9 @@ module.exports = {
     RESPONSE_INVALID_PHONE_TOKEN: "INVALID_PHONE_TOKEN",
     RESPONSE_GROUP_NOT_FOUND: "TEAM NOT FOUND",
 
+    RESPONSE_NO_REVIEW_FOUND: "NO REVIEW FOUND",
+    RESPONSE_NO_RATING_FOUND: "NO RATING FOUND",
+
     STUDENT: "STUDENT",
     TEACHER: "TEACHER",
     STAFF: "ADMIN",
@@ -41,6 +44,11 @@ module.exports = {
       status: false,
       message: "Internal server error",
     },
+    NO_REVIEW_FOUND: {
+      status: false,
+      message: "No review found",
+    },
+
     STATUS_ACTIVE: "ACTIVE",
     STATUS_INACTIVE: "INACTIVE",
 

@@ -53,11 +53,14 @@ async function giveReview(req, res) {
     );
     // encrypt review text
     const encryptedReviewText = encryptAES(req.body.reviewText, sharedSecret);
+    const currentDate = new Date();
+    const options = { month: "short", day: "numeric", year: "numeric" };
+    const formattedDate = currentDate.toLocaleDateString("en-US", options);
 
     const response = await new Promise((resolve, reject) => {
       reviewId = uuid.v4();
       dbConnection.query(
-        "INSERT INTO review (reviewId, reviewerId, revieweeEmail, reviewText, isDeleted , isAnonymous) VALUES ($1, $2, $3, $4, $5, $6)",
+        "INSERT INTO review (reviewId, reviewerId, revieweeEmail, reviewText, isDeleted , isAnonymous,date) VALUES ($1, $2, $3, $4, $5, $6 , $7)",
         [
           reviewId,
           req.body.reviewerId,
@@ -65,6 +68,7 @@ async function giveReview(req, res) {
           encryptedReviewText,
           0,
           req.body.isAnonymous,
+          formattedDate,
         ],
         (error, result, field) => {
           if (error) {
@@ -354,7 +358,7 @@ async function getReviewByRevieweeEmailAndReviewerId(req, res) {
     if (response.length === 0) {
       return res.send({
         status: false,
-        responseMessage: "NO review found",
+        responseMessage: ServerEnum.RESPONSE_NO_REVIEW_FOUND,
         response: {},
         sharedkey: null,
       });
@@ -445,7 +449,6 @@ async function getReviewAndRatingByReviewerIdAndRevieweeEmail(req, res) {
 
 // update review
 async function updateReview(req, res) {
-  console.log("updateReview", req.body);
   try {
     if (
       !req ||
@@ -458,12 +461,20 @@ async function updateReview(req, res) {
       res.status(500).json({ message: "Invalid input" });
       return;
     }
+    const currentDate = new Date();
+    const options = { month: "short", day: "numeric", year: "numeric" };
+    const formattedDate = currentDate.toLocaleDateString("en-US", options);
 
     encryptedReviewText = encryptAES(req.body.reviewText, req.body.sharedKey);
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "UPDATE review SET reviewText = $1, isAnonymous = $2 WHERE reviewId = $3",
-        [encryptedReviewText, req.body.isAnonymous, req.body.reviewId],
+        "UPDATE review SET reviewText = $1, isAnonymous = $2 , date = $3 WHERE reviewId = $3",
+        [
+          encryptedReviewText,
+          req.body.isAnonymous,
+          req.body.reviewId,
+          formattedDate,
+        ],
         (error, result, field) => {
           if (error) {
             res.status(500).json({ message: error.message });

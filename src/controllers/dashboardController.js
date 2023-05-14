@@ -129,6 +129,8 @@ async function databaseCommit(req, res) {
           showRating char(2) NOT NULL DEFAULT 0,
           designation varchar(255) NOT NULL,
           department varchar(255) NOT NULL,
+          ratingCount char(36) NULL,
+          averageRating char(36) NULL,
           PRIMARY KEY (userId),
           UNIQUE (email)
         );
