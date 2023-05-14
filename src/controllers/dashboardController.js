@@ -19,7 +19,7 @@ async function getAllTeachers(req, res) {
         }
       );
     });
-    response.forEach((element) => {});
+
     return res.send({
       status: true,
       responseMessage: "All teachers",
@@ -73,6 +73,7 @@ async function getAllTeachersAndStaff(req, res) {
         }
       );
     });
+    // make every teachers showrating = 1
     return res.send({
       status: true,
       responseMessage: "All teachers ans  Staff",
@@ -138,7 +139,7 @@ async function databaseCommit(req, res) {
           reviewId uuid PRIMARY KEY NOT NULL,
           reviewerId uuid NOT NULL,
           revieweeEmail varchar(255) NULL,
-          reviewText varchar(255) NULL,
+          reviewText varchar(16384) NULL,
           isDeleted char(2) NOT NULL,
           isAnonymous char(2) NOT NULL,
           date varchar(255) NULL,

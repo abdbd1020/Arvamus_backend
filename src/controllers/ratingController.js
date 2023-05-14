@@ -77,9 +77,20 @@ async function giveRating(req, res) {
         }
       );
     });
-    const ratingCount = revieweeResponse.ratingCount + 1;
-    const averageRating =
-      (revieweeResponse.averageRating + averageReview) / ratingCount;
+    let ratingCount;
+    let averageRating;
+
+    if (!Number(revieweeResponse.ratingcount)) {
+      ratingCount = 1;
+    } else {
+      ratingCount = Number(revieweeResponse.ratingcount) + 1;
+    }
+
+    if (!Number(revieweeResponse.averagerating)) {
+      averageRating = averageReview;
+    } else {
+      (Number(revieweeResponse.averagerating) + averageReview) / ratingCount;
+    }
     // update reviewee average review
     const updateRevieweeAverageReview = await new Promise((resolve, reject) => {
       dbConnection.query(
@@ -210,7 +221,7 @@ async function updateRating(req, res) {
         }
       );
     });
-    const revieweeEmail = revieweeEmailResponse.revieweeEmail;
+    const revieweeEmail = revieweeEmailResponse.revieweeemail;
 
     // get reviewee details
     const revieweeResponse = await getUserByEmail(revieweeEmail);
@@ -254,12 +265,26 @@ async function updateRating(req, res) {
         }
       );
     });
-    const averageRating =
-      (revieweeResponse.averageRating + averageReview) / ratingCount;
+
+    let ratingCount;
+    let averageRating;
+
+    if (!Number(revieweeResponse.ratingcount)) {
+      ratingCount = 1;
+    } else {
+      ratingCount = Number(revieweeResponse.ratingcount);
+    }
+
+    if (!Number(revieweeResponse.averagerating)) {
+      averageRating = averageReview;
+    } else {
+      (Number(revieweeResponse.averagerating) + averageReview) / ratingCount;
+    }
+
     // update reviewee average review
     const updateRevieweeAverageReview = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "UPDATE users SET averageRating = $1   WHERE email = $3",
+        "UPDATE users SET averageRating = $1   WHERE email = $2",
         [averageRating, revieweeEmail],
         (error, result, field) => {
           if (error) {

@@ -178,15 +178,21 @@ async function getAllReviewsAndRatingByReviewer(req, res) {
           responseMessage: "User does not exist",
         });
       }
-      response[i].revieweeName =
-        userByEmail.firstname + " " + userByEmail.lastname;
+      response[i].firstname = userByEmail.firstname;
+      response[i].lastname = userByEmail.lastname;
       response[i].designation = userByEmail.designation;
+      response[i].department = userByEmail.department;
 
       const decryptedReviewText = await decryptMessageOfReview(
         response[i].reviewtext,
         userByEmail.publickey,
         req.body.privatekey
       );
+      const sharedKey = getSharedSecretKey(
+        req.body.privatekey,
+        userByEmail.publickey
+      );
+      response[i].sharedKey = sharedKey;
       response[i].reviewtext = decryptedReviewText;
     }
 
@@ -449,6 +455,7 @@ async function getReviewAndRatingByReviewerIdAndRevieweeEmail(req, res) {
 
 // update review
 async function updateReview(req, res) {
+  console.log("updateReview", req.body);
   try {
     if (
       !req ||
@@ -468,12 +475,12 @@ async function updateReview(req, res) {
     encryptedReviewText = encryptAES(req.body.reviewText, req.body.sharedKey);
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "UPDATE review SET reviewText = $1, isAnonymous = $2 , date = $3 WHERE reviewId = $3",
+        "UPDATE review SET reviewText = $1, isAnonymous = $2 , date = $3 WHERE reviewId = $4",
         [
           encryptedReviewText,
           req.body.isAnonymous,
-          req.body.reviewId,
           formattedDate,
+          req.body.reviewId,
         ],
         (error, result, field) => {
           if (error) {
