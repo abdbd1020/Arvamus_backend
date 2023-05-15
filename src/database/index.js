@@ -1,26 +1,18 @@
 /* eslint-disable quotes */
 // const mysql = require("mysql2");
-const { Client,Pool } = require("pg");
+const { Pool } = require("pg");
 
-// const client = new Client({
-//   host    : 'localhost',
-//   port    : 5432,
-//   user    : 'postgres',
-//   password: 'password',
-//   database: 'arvamus'
-
-// })
-// client.connect()
-
-const host = "localhost";
-// const port = null;
+const host = "Ss0J5ykd8Foe91y83leIgVICIi2PvKMb";
 const port = 5432;
-// const user = "root";
-const user = "postgres";
-const password = "password";
-const database = "arvamus"
+const user = "arvamusadmin";
+const password = "Ss0J5ykd8Foe91y83leIgVICIi2PvKMb";
+const database = "arvamus_ih7c";
 
-
+// const host = "localhost";
+// const port = 5432;
+// const user = "postgres";
+// const password = "password";
+// const database = "arvamus";
 
 const pool = new Pool({
   host,
@@ -30,6 +22,9 @@ const pool = new Pool({
   database,
   debug: true,
   multipleStatements: true,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 module.exports = {
