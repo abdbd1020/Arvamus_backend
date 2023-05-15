@@ -2,7 +2,6 @@ const dbConnection = require("../database");
 const crypto = require("crypto");
 
 async function getPublicKeybyEmail(req, res) {
-  console.log(req.body);
   if (!req || !req.body || !req.body.email) {
     res.status(500).json({ message: "Invalid input" });
     return;
@@ -27,12 +26,10 @@ async function getPublicKeybyEmail(req, res) {
       publicKey: response.publickey,
     });
   } catch {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
 async function getPublicKeybyUserId(req, res) {
-  console.log(req.body);
   if (!req || !req.body || !req.body.userId) {
     res.status(500).json({ message: "Invalid input" });
     return;
@@ -57,7 +54,6 @@ async function getPublicKeybyUserId(req, res) {
       publicKey: response.publickey,
     });
   } catch {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
@@ -85,7 +81,6 @@ async function getUserByEmail(email) {
     }
     return null;
   } catch (e) {
-    console.log(e);
     return null;
   }
 }
@@ -113,7 +108,6 @@ async function getUserById(useId) {
     }
     return null;
   } catch (e) {
-    console.log(e);
     return null;
   }
 }
@@ -139,7 +133,6 @@ async function ratingbyUser(userId) {
     }
     return null;
   } catch (e) {
-    console.log(e);
     return null;
   }
 }

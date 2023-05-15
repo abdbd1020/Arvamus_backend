@@ -22,12 +22,12 @@ async function giveRating(req, res) {
       });
     }
     // check if reviewee exists
-    const revieweeResponse = getUserByEmail(req.body.revieweeEmail);
+    const revieweeResponse = await getUserByEmail(req.body.revieweeEmail);
     if (!revieweeResponse) {
       return res.send(ServerEnum.USER_NOT_FOUND);
     }
     // check if reviewer exists
-    const reviewerResponse = getUserById(req.body.reviewerId);
+    const reviewerResponse = await getUserById(req.body.reviewerId);
     if (!reviewerResponse) {
       return res.send(ServerEnum.USER_NOT_FOUND);
     }
@@ -112,13 +112,11 @@ async function giveRating(req, res) {
       response: response,
     });
   } catch (e) {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
 // get all reviews by a reviewer
 async function getAllRatingsbyReviewer(req, res) {
-  console.log(req.body);
   try {
     if (!req || !req.body || !req.body.reviewerId) {
       res.status(500).json({ message: "Invalid input" });
@@ -137,14 +135,12 @@ async function getAllRatingsbyReviewer(req, res) {
         }
       );
     });
-    console.log(response);
     return res.send({
       status: true,
       responseMessage: "All rating by reviewer",
       response: response,
     });
   } catch {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
@@ -183,7 +179,6 @@ async function getRatingByRevieweeEmailAndReviewerId(req, res) {
       response: response,
     });
   } catch {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
@@ -301,14 +296,12 @@ async function updateRating(req, res) {
       response: response,
     });
   } catch (e) {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }
 
 // delete review
 async function deleteRating(req, res) {
-  console.log(req.body);
   try {
     if (!req || !req.body || !req.body.ratingId) {
       res.status(500).json({ message: "Invalid input" });
@@ -327,14 +320,12 @@ async function deleteRating(req, res) {
         }
       );
     });
-    console.log(response);
     return res.send({
       status: true,
       responseMessage: "Rating deleted",
       response: response,
     });
   } catch {
-    console.log(e);
     res.status(500).json({ message: e.message });
   }
 }

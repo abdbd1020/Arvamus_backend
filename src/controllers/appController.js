@@ -11,7 +11,6 @@ const { userByEmail } = require("./userController");
 
 // register
 async function signup(req, res) {
-  console.log(req.body);
   if (
     !req ||
     !req.body ||
@@ -24,7 +23,6 @@ async function signup(req, res) {
     !req.body.department ||
     !req.body.designation
   ) {
-    console.log("Invalid request");
     return res.send(ServerEnum.INVALID_INPUT);
   }
 
@@ -104,11 +102,9 @@ async function signup(req, res) {
         });
       })
       .catch((error) => {
-        console.log(error);
         res.status(401).json({ message: error.message });
       });
   } catch (error) {
-    console.log(error);
     res.status(401).json({ message: error.message });
   }
 }
@@ -163,7 +159,6 @@ async function login(req, res) {
             status: true,
             responseMessage: "Login Successful",
           });
-          console.log("Login Successful");
           return;
         }
         return res.send({
@@ -172,9 +167,7 @@ async function login(req, res) {
         });
       });
     });
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e) {}
 }
 // get User by id
 async function getUserById(req, res) {
@@ -212,9 +205,7 @@ async function getUserById(req, res) {
         responseMessage: "User fetched",
       });
     });
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e) {}
 }
 
 async function forgotPassword(req, res) {
@@ -272,7 +263,6 @@ async function forgotPassword(req, res) {
         "Password reset",
         `Your password has been reset.\nNew password is: ${password}\nKindly ensure to change your password once you login.\n `
       );
-      console.log(snedMailResponse);
       if (!snedMailResponse) {
         return res.send({
           status: false,
@@ -285,9 +275,7 @@ async function forgotPassword(req, res) {
         responseMessage: "Password Reset Successfully",
       });
     });
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e) {}
 }
 
 async function changePassword(req, res) {
@@ -353,9 +341,7 @@ async function changePassword(req, res) {
         });
       }
     });
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e) {}
 }
 
 async function updateInfo(req, res) {
@@ -434,9 +420,7 @@ async function updateInfo(req, res) {
         responseMessage: "Update Successful",
       });
     });
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e) {}
 }
 
 function getRandomArbitrary(min, max) {

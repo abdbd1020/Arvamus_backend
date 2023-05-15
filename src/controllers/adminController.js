@@ -1,27 +1,25 @@
-const uuid = require('uuid');
-const bcrypt = require('bcrypt');
-const dbConnection = require('../database');
-const { ServerEnum } = require('../../ServerEnum');
+const uuid = require("uuid");
+const bcrypt = require("bcrypt");
+const dbConnection = require("../database");
+const { ServerEnum } = require("../../ServerEnum");
 
 async function createAdmin(req, res) {
   console.log(req.body);
   try {
-    const {
-      currentAdminId, name, email, password
-    } = req.body;
+    const { currentAdminId, name, email, password } = req.body;
     const verify = await verifyAdmin(currentAdminId);
     console.log(verify);
     if (verify === false) {
       return res.send({
         status: false,
-        responseMessage: 'Unauthorized',
+        responseMessage: "Unauthorized",
       });
     }
     const adminId = uuid.v1();
 
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'SELECT * FROM admins WHERE email = ?',
+        "SELECT * FROM admins WHERE email = ?",
         [email],
         (error, result, field) => {
           if (error) {
@@ -33,7 +31,7 @@ async function createAdmin(req, res) {
           if (result.length > 0) {
             return res.send({
               status: false,
-              responseMessage: 'email already exists',
+              responseMessage: "email already exists",
             });
           }
           resolve(result);
@@ -59,7 +57,7 @@ async function createAdmin(req, res) {
       });
       return res.send({
         status: true,
-        responseMessage: 'admin created',
+        responseMessage: "admin created",
       });
     });
   } catch (e) {
@@ -74,7 +72,7 @@ async function adminLogin(req, res) {
 
     const admin = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'SELECT * FROM admins WHERE email = ?',
+        "SELECT * FROM admins WHERE email = ?",
         [email],
         (error, result, field) => {
           if (error) {
@@ -86,7 +84,7 @@ async function adminLogin(req, res) {
           if (result.length === 0) {
             return res.send({
               status: false,
-              responseMessage: 'email does not exist',
+              responseMessage: "email does not exist",
             });
           }
           resolve(result[0]);
@@ -101,12 +99,12 @@ async function adminLogin(req, res) {
         return res.send({
           user: admin,
           status: true,
-          responseMessage: 'Login Successful',
+          responseMessage: "Login Successful",
         });
       }
       return res.send({
         status: false,
-        responseMessage: 'Password is incorrect',
+        responseMessage: "Password is incorrect",
       });
     });
   } catch (e) {
@@ -121,7 +119,7 @@ async function adminChangePassword(req, res) {
 
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'SELECT * FROM admins WHERE adminId = ?',
+        "SELECT * FROM admins WHERE adminId = ?",
         [adminId],
         (error, result, field) => {
           if (error) {
@@ -133,7 +131,7 @@ async function adminChangePassword(req, res) {
           if (result.length === 0) {
             return res.send({
               status: false,
-              responseMessage: 'User does not exist',
+              responseMessage: "User does not exist",
             });
           }
           resolve(result[0]);
@@ -146,7 +144,7 @@ async function adminChangePassword(req, res) {
         await new Promise((resolve, reject) => {
           bcrypt.hash(newPassword, 10, (err, hash) => {
             dbConnection.query(
-              'UPDATE admins SET password = ? WHERE adminId = ? ',
+              "UPDATE admins SET password = ? WHERE adminId = ? ",
               [hash, adminId],
               (error, result, field) => {
                 if (error) {
@@ -161,13 +159,13 @@ async function adminChangePassword(req, res) {
           });
           return res.send({
             status: true,
-            responseMessage: 'Password Changed Successfully',
+            responseMessage: "Password Changed Successfully",
           });
         });
       } else {
         return res.send({
           status: false,
-          responseMessage: 'Password does not match.',
+          responseMessage: "Password does not match.",
         });
       }
     });
@@ -182,7 +180,7 @@ async function verifyAdmin(adminId) {
   }
   const response = await new Promise((resolve, reject) => {
     dbConnection.query(
-      'SELECT * FROM admins WHERE adminId = ?',
+      "SELECT * FROM admins WHERE adminId = ?",
       [adminId],
       (error, result, field) => {
         if (error) {
@@ -208,7 +206,7 @@ async function changeStatus(req, res) {
 
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        'SELECT * FROM users WHERE userId = ?',
+        "SELECT * FROM users WHERE userId = ?",
         [userId],
         (error, result, field) => {
           if (error) {
@@ -220,7 +218,7 @@ async function changeStatus(req, res) {
           if (result.length === 0) {
             return res.send({
               status: false,
-              responseMessage: 'User does not exist',
+              responseMessage: "User does not exist",
             });
           }
           resolve(result[0]);
@@ -230,7 +228,7 @@ async function changeStatus(req, res) {
 
     await new Promise((resolve, reject) => {
       dbConnection.query(
-        'UPDATE users SET status = ? WHERE userId = ? ',
+        "UPDATE users SET status = ? WHERE userId = ? ",
         [status, userId],
         (error, result, field) => {
           if (error) {
@@ -244,7 +242,7 @@ async function changeStatus(req, res) {
       );
       return res.send({
         status: true,
-        responseMessage: 'Update Successful',
+        responseMessage: "Update Successful",
       });
     });
   } catch (e) {

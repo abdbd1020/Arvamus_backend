@@ -169,6 +169,7 @@ async function getAllReviewsAndRatingByReviewer(req, res) {
         }
       );
     });
+    console.log(response);
     for (let i = 0; i < response.length; i++) {
       // user by email
       const userByEmail = await getUserByEmail(response[i].revieweeemail);
@@ -428,7 +429,7 @@ async function getReviewAndRatingByReviewerIdAndRevieweeEmail(req, res) {
 
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
-        "SELECT *  ,   COALESCE(review.revieweeemail, rating.revieweeemail) AS revieweeemail, COALESCE(review.reviewerId, rating.reviewerId) AS reviewerId FROM review FULL OUTER JOIN rating ON review.reviewerId = rating.reviewerId AND review.revieweeemail = rating.revieweeemail WHERE review.revieweeemail = $1 AND review.reviewerId = $2 AND review.isDeleted = '0'",
+        "SELECT *  ,   COALESCE(review.revieweeemail, rating.revieweeemail) AS revieweeemail, COALESCE(review.reviewerId, rating.reviewerId) AS reviewerId FROM review LEFT JOIN rating ON review.reviewerId = rating.reviewerId AND review.revieweeemail = rating.revieweeemail WHERE review.revieweeemail = $1 AND review.reviewerId = $2 AND review.isDeleted = '0' UNION ALL ",
         [req.body.revieweeEmail, req.body.reviewerId],
         (error, result, field) => {
           if (error) {
@@ -466,7 +467,6 @@ async function getReviewAndRatingByReviewerIdAndRevieweeEmail(req, res) {
 
 // update review
 async function updateReview(req, res) {
-  console.log("updateReview", req.body);
   try {
     if (
       !req ||
