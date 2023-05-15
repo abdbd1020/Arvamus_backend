@@ -241,7 +241,16 @@ async function getAllReviewsAndRatingOfReviewee(req, res) {
           responseMessage: "User does not exist",
         });
       }
-      response[i].reviewerName = userById.firstname + " " + userById.lastname;
+      if (Number(response[i].isanonymous) === 1) {
+        response[i].firstname = "Anonymous";
+        response[i].lastname = "";
+      } else {
+        response[i].firstname = userById.firstname;
+        response[i].lastname = userById.lastname;
+      }
+
+      response[i].department = userById.department;
+      response[i].isTeacher = false;
 
       const decryptedReviewText = await decryptMessageOfReview(
         response[i].reviewtext,
@@ -306,6 +315,7 @@ async function getAllReviewsOfReveiwee(req, res) {
         req.body.privatekey
       );
       response[i].reviewtext = decryptedReviewText;
+      response[i].isTeacher = true;
     }
     return res.send({
       status: true,
@@ -435,6 +445,7 @@ async function getReviewAndRatingByReviewerIdAndRevieweeEmail(req, res) {
     // decrypt review text
     try {
       response[0].reviewtext = decryptAES(response[0].reviewtext, sharedkey);
+
       response[0].revieweeName =
         reveiweeResponse.firstname + " " + reveiweeResponse.lastname;
       response[0].designation = reveiweeResponse.designation;

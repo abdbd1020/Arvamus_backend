@@ -72,8 +72,8 @@ async function signup(req, res) {
 
         bcrypt.hash(password, 10, (err, hash) => {
           dbConnection.query(
-            `INSERT INTO users(userId, firstName, lastName, email, password, mobile, type, publicKey, privatekey, department, designation,ratingCount,averageRating)
-            VALUES ($1, $2, $3, $4, $5, $6, $7 , $8, $9, $10, $11, $12, $13)`,
+            `INSERT INTO users(userId, firstName, lastName, email, password, mobile, type, publicKey, privatekey, department, designation,ratingCount,averageRating,showRating)
+            VALUES ($1, $2, $3, $4, $5, $6, $7 , $8, $9, $10, $11, $12, $13, $14)`,
             [
               userId,
               firstName,
@@ -88,6 +88,7 @@ async function signup(req, res) {
               designation,
               0,
               0,
+              1,
             ],
             (error, result, field) => {
               if (error) {
@@ -169,6 +170,46 @@ async function login(req, res) {
           status: false,
           responseMessage: "Password is incorrect",
         });
+      });
+    });
+  } catch (e) {
+    console.log(e);
+  }
+}
+// get User by id
+async function getUserById(req, res) {
+  if (!req || !req.body || !req.body.userId) {
+    return res.send({
+      status: false,
+      responseMessage: "Invalid request",
+    });
+  }
+  try {
+    const { userId } = req.body;
+    const user = new Promise((resolve, reject) => {
+      dbConnection.query(
+        "SELECT * FROM users WHERE userId = $1",
+        [userId],
+        (error, result, field) => {
+          if (error) {
+            res.status(401).json({ message: error });
+            return;
+          }
+          if (result.length === 0) {
+            return res.send({
+              status: false,
+              responseMessage: "User does not exist",
+            });
+          }
+          resolve(result.rows[0]);
+        }
+      );
+    });
+    user.then((user) => {
+      res.send({
+        user: user,
+        status: true,
+        responseMessage: "User fetched",
       });
     });
   } catch (e) {
@@ -273,8 +314,15 @@ async function changePassword(req, res) {
         }
       );
     });
-    previousPrivateKey = decryptAES(response.privatekey, oldPassword);
-    newEncryptedPrivateKey = encryptAES(previousPrivateKey, newPassword);
+    try {
+      previousPrivateKey = decryptAES(response.privatekey, oldPassword);
+      newEncryptedPrivateKey = encryptAES(previousPrivateKey, newPassword);
+    } catch (e) {
+      return res.send({
+        status: false,
+        responseMessage: "Password does not match.",
+      });
+    }
     bcrypt.compare(oldPassword, response.password, async (err, result) => {
       if (result) {
         await new Promise((resolve, reject) => {
@@ -319,17 +367,24 @@ async function updateInfo(req, res) {
     !req.body.lastName ||
     !req.body.mobile ||
     !req.body.department ||
-    !req.body.designation
+    !req.body.designation ||
+    !req.body.showRating
   ) {
     return res.send({
       status: false,
       responseMessage: "Invalid request",
     });
   }
-
   try {
-    const { userId, firstName, lastName, mobile, department, designation } =
-      req.body;
+    const {
+      userId,
+      firstName,
+      lastName,
+      mobile,
+      department,
+      designation,
+      showRating,
+    } = req.body;
 
     const response = await new Promise((resolve, reject) => {
       dbConnection.query(
@@ -354,8 +409,16 @@ async function updateInfo(req, res) {
 
     await new Promise((resolve, reject) => {
       dbConnection.query(
-        "UPDATE users SET firstName = $1, lastName = $2, mobile = $3 , department = $4, designation = $5 WHERE userId = $6",
-        [firstName, lastName, mobile, department, designation, userId],
+        "UPDATE users SET firstName = $1, lastName = $2, mobile = $3 , department = $4, designation = $5 , showRating = $6 WHERE userId = $7",
+        [
+          firstName,
+          lastName,
+          mobile,
+          department,
+          designation,
+          showRating,
+          userId,
+        ],
         (error, result, field) => {
           if (error) {
             res.status(401).json({
@@ -386,4 +449,5 @@ module.exports = {
   changePassword,
   updateInfo,
   forgotPassword,
+  getUserById,
 };
