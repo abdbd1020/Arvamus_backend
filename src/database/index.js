@@ -2,7 +2,7 @@
 // const mysql = require("mysql2");
 const { Pool } = require("pg");
 
-const host = "Ss0J5ykd8Foe91y83leIgVICIi2PvKMb";
+const host = "dpg-chgutd2k728sd6lq3t9g-a";
 const port = 5432;
 const user = "arvamusadmin";
 const password = "Ss0J5ykd8Foe91y83leIgVICIi2PvKMb";
